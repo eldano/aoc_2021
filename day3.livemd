@@ -1,0 +1,99 @@
+# Day 3
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+## Part 1
+
+```elixir
+input_arr =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n")
+
+length = input_arr |> hd() |> String.length()
+max_digit = length - 1
+
+most_and_least_common_at = fn bin_list, pos ->
+  digits_at_pos = Enum.map(bin_list, &String.at(&1, pos))
+
+  count_ones = Enum.count(digits_at_pos, fn x -> x == "1" end)
+  count_zeros = Enum.count(digits_at_pos, fn x -> x == "0" end)
+
+  if count_ones >= count_zeros, do: {1, 0}, else: {0, 1}
+end
+
+gamma =
+  0..max_digit
+  |> Enum.map(fn pos ->
+    {gamma, _eps} = most_and_least_common_at.(input_arr, pos)
+    gamma
+  end)
+  |> Integer.undigits(2)
+
+eps =
+  0..max_digit
+  |> Enum.map(fn pos ->
+    {_gamma, eps} = most_and_least_common_at.(input_arr, pos)
+    eps
+  end)
+  |> Integer.undigits(2)
+
+gamma * eps
+```
+
+## Part 2
+
+```elixir
+select_most_at_pos = fn pos, bin_list ->
+  {most, _} = most_and_least_common_at.(bin_list, pos)
+
+  bin_list
+  |> Enum.reject(fn bin -> String.at(bin, pos) != Integer.to_string(most) end)
+end
+
+select_least_at_pos = fn pos, bin_list ->
+  {_, least} = most_and_least_common_at.(bin_list, pos)
+
+  bin_list
+  |> Enum.reject(fn bin -> String.at(bin, pos) != Integer.to_string(least) end)
+end
+
+oxygen =
+  Enum.reduce_while(0..max_digit, input_arr, fn pos, acc ->
+    if length(acc) == 1 do
+      {:halt, acc}
+    else
+      acc = select_most_at_pos.(pos, acc)
+      {:cont, acc}
+    end
+  end)
+  |> hd()
+  |> Integer.parse(2)
+  |> elem(0)
+
+co2 =
+  Enum.reduce_while(0..max_digit, input_arr, fn pos, acc ->
+    if length(acc) == 1 do
+      {:halt, acc}
+    else
+      acc = select_least_at_pos.(pos, acc)
+      {:cont, acc}
+    end
+  end)
+  |> hd()
+  |> Integer.parse(2)
+  |> elem(0)
+
+oxygen * co2
+```
