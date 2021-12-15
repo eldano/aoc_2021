@@ -1,0 +1,137 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Day 4
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```output
+:ok
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+## Part 1
+
+```elixir
+raw_input =
+  input
+  |> Kino.Input.read()
+
+[draw | boards] = raw_input |> String.split("\n\n")
+
+draw = String.split(draw, ",")
+
+defmodule Board do
+  defstruct vals: []
+
+  def from_str(str) do
+    vals =
+      str
+      |> String.replace("\n", " ")
+      |> String.split(" ")
+      |> Enum.reject(fn item -> item == "" end)
+      |> Enum.map(fn number -> {number, false} end)
+
+    %Board{vals: vals}
+  end
+
+  def mark_number(%Board{vals: vals}, number) do
+    new_vals =
+      vals
+      |> Enum.map(fn
+        {^number, _} -> {number, true}
+        {other, check} -> {other, check}
+      end)
+
+    %Board{vals: new_vals}
+  end
+
+  def is_a_bingo?(%Board{vals: vals}) do
+    possibilities = [
+      [0, 1, 2, 3, 4],
+      [5, 6, 7, 8, 9],
+      [10, 11, 12, 13, 14],
+      [15, 16, 17, 18, 19],
+      [20, 21, 22, 23, 24],
+      [0, 5, 10, 15, 20],
+      [1, 6, 11, 16, 21],
+      [2, 7, 12, 17, 22],
+      [3, 8, 13, 18, 23],
+      [4, 9, 14, 19, 24]
+    ]
+
+    possibilities
+    |> Enum.any?(fn possibility ->
+      Enum.all?(possibility, fn index -> elem(Enum.at(vals, index), 1) == true end)
+    end)
+  end
+
+  def play_until_first_winner([number | rest], boards) do
+    case play_one(number, boards) do
+      {nil, marked_boards} -> play_until_first_winner(rest, marked_boards)
+      {board, marked_boards} -> {board, marked_boards, number}
+    end
+  end
+
+  def play_until_last_winner(draw, [board]) do
+    play_until_first_winner(draw, [board])
+  end
+
+  def play_until_last_winner(draw, boards) do
+    {winner_board, marked_boards, _number} = play_until_first_winner(draw, boards)
+
+    remaining_boards = marked_boards -- [winner_board]
+    play_until_last_winner(draw, remaining_boards)
+  end
+
+  defp play_one(number, boards) do
+    marked_boards = Enum.map(boards, fn board -> Board.mark_number(board, number) end)
+
+    winner_board = Enum.find(marked_boards, fn board -> Board.is_a_bingo?(board) end)
+
+    {winner_board, marked_boards}
+  end
+end
+
+boards =
+  boards
+  |> Enum.map(fn board_str -> Board.from_str(board_str) end)
+
+{winner_board, marked_boards, winner_number} = Board.play_until_first_winner(draw, boards)
+%Board{vals: vals} = winner_board
+
+Enum.reduce(vals, 0, fn
+  {_num, true}, acc -> acc
+  {num, false}, acc -> acc + String.to_integer(num)
+end)
+|> Kernel.*(String.to_integer(winner_number))
+```
+
+```output
+38913
+```
+
+## Part 2
+
+```elixir
+{last_winner_board, _marked_boards, winner_number} = Board.play_until_last_winner(draw, boards)
+%Board{vals: vals} = last_winner_board
+
+Enum.reduce(vals, 0, fn
+  {_num, true}, acc -> acc
+  {num, false}, acc -> acc + String.to_integer(num)
+end)
+|> Kernel.*(String.to_integer(winner_number))
+```
+
+```output
+16836
+```
