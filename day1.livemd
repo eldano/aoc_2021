@@ -1,0 +1,68 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Day 1
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```output
+:ok
+```
+
+```elixir
+input = Kino.Input.textarea("input")
+```
+
+## Part 1
+
+```elixir
+height_list =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n")
+  |> Enum.map(&String.to_integer(&1))
+
+process_input = fn height_list ->
+  height_list
+  |> Enum.zip([nil | height_list])
+  |> Enum.map(fn
+    {n, nil} -> {n, "N/A - no previous measurement"}
+    {n, prev} when prev < n -> {n, "increased"}
+    {n, prev} when prev > n -> {n, "decreased"}
+    {n, n} -> {n, "equal"}
+  end)
+end
+
+height_list
+|> process_input.()
+|> Enum.count(fn {_n, result} -> result == "increased" end)
+```
+
+```output
+1167
+```
+
+## Part 2
+
+```elixir
+sum_3 =
+  height_list
+  |> Enum.zip([nil | height_list])
+  |> Enum.zip([nil | [nil | height_list]])
+  |> Enum.drop(2)
+  |> Enum.map(fn {{a, b}, c} -> a + b + c end)
+
+sum_3
+|> process_input.()
+|> Enum.count(fn {_n, result} -> result == "increased" end)
+```
+
+```output
+1130
+```
