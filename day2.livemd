@@ -1,0 +1,49 @@
+# Day 2
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+## Part 1
+
+```elixir
+command_list =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n")
+  |> Enum.map(fn command ->
+    [dir, amount] = String.split(command, " ")
+    {dir, String.to_integer(amount)}
+  end)
+
+Enum.reduce(command_list, {0, 0}, fn {dir, amount}, {acc_hz, acc_dp} ->
+  case dir do
+    "forward" -> {acc_hz + amount, acc_dp}
+    "down" -> {acc_hz, acc_dp + amount}
+    "up" -> {acc_hz, acc_dp - amount}
+  end
+end)
+|> Kernel.then(fn {hz, dp} -> hz * dp end)
+```
+
+## Part 2
+
+```elixir
+Enum.reduce(command_list, {0, 0, 0}, fn {dir, amount}, {acc_hz, acc_dp, aim} ->
+  case dir do
+    "forward" -> {acc_hz + amount, acc_dp + aim * amount, aim}
+    "down" -> {acc_hz, acc_dp, aim + amount}
+    "up" -> {acc_hz, acc_dp, aim - amount}
+  end
+end)
+|> Kernel.then(fn {hz, dp, _aim} -> hz * dp end)
+```
