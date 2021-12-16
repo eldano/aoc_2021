@@ -18,17 +18,9 @@ Mix.install([
 input = Kino.Input.textarea("Input:")
 ```
 
-## Part 1
+## Modules
 
 ```elixir
-raw_input =
-  input
-  |> Kino.Input.read()
-
-[draw | boards] = raw_input |> String.split("\n\n")
-
-draw = String.split(draw, ",")
-
 defmodule Board do
   defstruct vals: []
 
@@ -100,6 +92,20 @@ defmodule Board do
     {winner_board, marked_boards}
   end
 end
+```
+
+```output
+{:module, Board, <<70, 79, 82, 49, 0, 0, 19, ...>>, {:play_one, 2}}
+```
+
+## Part 1
+
+```elixir
+raw_input = Kino.Input.read(input)
+
+[draw | boards] = raw_input |> String.split("\n\n")
+
+draw = String.split(draw, ",")
 
 boards =
   boards
@@ -116,7 +122,7 @@ end)
 ```
 
 ```output
-38913
+4512
 ```
 
 ## Part 2
@@ -133,5 +139,5 @@ end)
 ```
 
 ```output
-16836
+1924
 ```
