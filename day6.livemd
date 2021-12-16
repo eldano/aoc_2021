@@ -1,0 +1,124 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Day 6
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```output
+:ok
+```
+
+```elixir
+input = Kino.Input.textarea("Enter input")
+```
+
+## Modules
+
+```elixir
+defmodule Lanternfish do
+  def spawn(lanternfishes) do
+    lanternfishes
+    |> Enum.reduce([], fn fish, list ->
+      if fish == 0 do
+        [8 | [6 | list]]
+      else
+        [fish - 1 | list]
+      end
+    end)
+  end
+
+  # def play(lanternfishes, num)
+  def play(lanternfishes, 0), do: lanternfishes
+
+  def play(lanternfishes, num) do
+    play(Lanternfish.spawn(lanternfishes), num - 1)
+  end
+end
+
+defmodule SmartLanternfish do
+  def init(fishes) do
+    fishes
+    |> Enum.group_by(fn key -> key end)
+    |> Enum.map(fn {k, v} -> {k, Enum.count(v)} end)
+    |> Map.new()
+  end
+
+  def tick(fishmap) do
+    fishmap
+    |> Enum.map(fn {days, count} -> {days - 1, count} end)
+    |> Map.new()
+  end
+
+  def spawn(fishmap) do
+    resets = Map.get(fishmap, -1, 0)
+
+    fishmap
+    |> Map.update(6, resets, fn existing -> existing + resets end)
+    |> Map.put(8, resets)
+    |> Map.delete(-1)
+  end
+
+  def play(fishmap, 0) do
+    fishmap
+    |> Map.values()
+    |> Enum.sum()
+  end
+
+  def play(fishmap, num) do
+    fishmap
+    |> SmartLanternfish.tick()
+    |> SmartLanternfish.spawn()
+    |> play(num - 1)
+  end
+end
+```
+
+```output
+{:module, SmartLanternfish, <<70, 79, 82, 49, 0, 0, 12, ...>>, {:play, 2}}
+```
+
+## Part 1
+
+```elixir
+lanternfishes =
+  input
+  |> Kino.Input.read()
+  |> String.split(",")
+  |> Enum.map(&String.to_integer/1)
+
+IO.inspect(lanternfishes)
+
+Lanternfish.play(lanternfishes, 80)
+|> Enum.count()
+
+lanternfishes
+|> SmartLanternfish.init()
+|> SmartLanternfish.play(80)
+```
+
+```output
+[1, 5, 5, 1, 5, 1, 5, 3, 1, 3, 2, 4, 3, 4, 1, 1, 3, 5, 4, 4, 2, 1, 2, 1, 2, 1,
+ 2, 1, 5, 2, 1, 5, 1, 2, 2, 1, 5, 5, 5, 1, 1, 1, 5, 1, 3, 4, 5, 1, 2, 2, ...]
+```
+
+```output
+346063
+```
+
+## Part 2
+
+```elixir
+lanternfishes
+|> SmartLanternfish.init()
+|> SmartLanternfish.play(256)
+```
+
+```output
+1572358335990
+```
