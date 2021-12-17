@@ -1,0 +1,145 @@
+# Day 5
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+## Modules
+
+```elixir
+defmodule Vents do
+  def init(string, only_hz_vt \\ false) do
+    vectors =
+      string
+      |> String.split("\n")
+      |> Enum.map(fn elem ->
+        [start, finish] = String.split(elem, " -> ")
+        [start_x, start_y] = String.split(start, ",")
+        [finish_x, finish_y] = String.split(finish, ",")
+
+        {
+          {String.to_integer(start_x), String.to_integer(start_y)},
+          {String.to_integer(finish_x), String.to_integer(finish_y)}
+        }
+      end)
+
+    if only_hz_vt do
+      vectors
+      |> Enum.reject(fn {{sx, sy}, {ex, ey}} -> sx != ex and sy != ey end)
+    else
+      vectors
+    end
+  end
+
+  def get_dims(list_of_vectors) do
+    list_of_vectors
+    |> Enum.reduce({0, 0}, fn {{start_x, start_y}, {finish_x, finish_y}}, {max_x, max_y} ->
+      new_max_x =
+        max(start_x, finish_x)
+        |> max(max_x)
+
+      new_max_y =
+        max(start_y, finish_y)
+        |> max(max_y)
+
+      {new_max_x, new_max_y}
+    end)
+  end
+
+  def empty_grid(dim_x, dim_y) do
+    for x <- 0..dim_x, y <- 0..dim_y, into: %{} do
+      {{x, y}, 0}
+    end
+  end
+
+  def print_grid(dim_x, dim_y, grid) do
+    for x <- 0..dim_x, y <- 0..dim_y do
+      if grid[{x, y}] == 0, do: IO.write("."), else: IO.write(grid[{x, y}])
+      if y == dim_y, do: IO.puts("")
+    end
+  end
+
+  def process(grid, []), do: grid
+
+  def process(grid, [vector | rest]) do
+    grid
+    |> update_grid_with_vector(vector)
+    |> process(rest)
+  end
+
+  def update_grid_with_vector(grid, {{sx, sy}, {sx, sy}}) do
+    Map.update!(grid, {sx, sy}, fn v -> v + 1 end)
+  end
+
+  def update_grid_with_vector(grid, {{sx, sy}, {ex, ey}}) do
+    new_grid = Map.update!(grid, {sx, sy}, fn v -> v + 1 end)
+
+    new_sx =
+      cond do
+        sx > ex -> sx - 1
+        sx < ex -> sx + 1
+        sx == ex -> sx
+      end
+
+    new_sy =
+      cond do
+        sy > ey -> sy - 1
+        sy < ey -> sy + 1
+        sy == ey -> sy
+      end
+
+    new_vector = {{new_sx, new_sy}, {ex, ey}}
+
+    update_grid_with_vector(new_grid, new_vector)
+  end
+end
+```
+
+## Part 1
+
+```elixir
+vents =
+  input
+  |> Kino.Input.read()
+  |> Vents.init(true)
+
+{dim_x, dim_y} = Vents.get_dims(vents)
+
+grid = Vents.empty_grid(dim_x, dim_y)
+
+# Vents.print_grid(dim_x, dim_y, grid)
+# IO.puts("")
+
+new_grid = Vents.process(grid, vents)
+
+# Vents.print_grid(dim_x, dim_y, new_grid)
+
+Map.values(new_grid)
+|> Enum.count(fn i -> i > 1 end)
+```
+
+## Part 2
+
+```elixir
+vents =
+  input
+  |> Kino.Input.read()
+  |> Vents.init(false)
+
+{dim_x, dim_y} = Vents.get_dims(vents)
+
+grid = Vents.empty_grid(dim_x, dim_y)
+
+new_grid = Vents.process(grid, vents)
+
+Map.values(new_grid)
+|> Enum.count(fn i -> i > 1 end)
+```
