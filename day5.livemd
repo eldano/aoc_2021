@@ -21,19 +21,16 @@ defmodule Vents do
       string
       |> String.split("\n")
       |> Enum.map(fn elem ->
-        [start, finish] = String.split(elem, " -> ")
-        [start_x, start_y] = String.split(start, ",")
-        [finish_x, finish_y] = String.split(finish, ",")
+        [_, sx, sy, ex, ey] = Regex.run(~r/(\d*),(\d*) -> (\d*),(\d*)/, elem)
 
         {
-          {String.to_integer(start_x), String.to_integer(start_y)},
-          {String.to_integer(finish_x), String.to_integer(finish_y)}
+          {String.to_integer(sx), String.to_integer(sy)},
+          {String.to_integer(ex), String.to_integer(ey)}
         }
       end)
 
     if only_hz_vt do
-      vectors
-      |> Enum.reject(fn {{sx, sy}, {ex, ey}} -> sx != ex and sy != ey end)
+      Enum.reject(vectors, fn {{sx, sy}, {ex, ey}} -> sx != ex and sy != ey end)
     else
       vectors
     end
@@ -42,13 +39,8 @@ defmodule Vents do
   def get_dims(list_of_vectors) do
     list_of_vectors
     |> Enum.reduce({0, 0}, fn {{start_x, start_y}, {finish_x, finish_y}}, {max_x, max_y} ->
-      new_max_x =
-        max(start_x, finish_x)
-        |> max(max_x)
-
-      new_max_y =
-        max(start_y, finish_y)
-        |> max(max_y)
+      new_max_x = Enum.max([start_x, finish_x, max_x])
+      new_max_y = Enum.max([start_y, finish_y, max_y])
 
       {new_max_x, new_max_y}
     end)
