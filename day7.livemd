@@ -1,0 +1,76 @@
+# Day 7
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+## Modules
+
+```elixir
+defmodule Crab do
+  def total_fuel_aligning_at(crabs, pos) do
+    crabs
+    |> Enum.reduce(0, fn crab, fuel ->
+      fuel + abs(crab - pos)
+    end)
+  end
+
+  def total_inc_fuel_aligning_at(crabs, pos) do
+    crabs
+    |> Enum.reduce(0, fn crab, fuel ->
+      distance = abs(crab - pos)
+      consumption = Enum.sum(0..distance)
+
+      consumption + fuel
+    end)
+  end
+end
+```
+
+## Part 1
+
+```elixir
+crabs =
+  input
+  |> Kino.Input.read()
+  |> String.split(",")
+  |> Enum.map(&String.to_integer/1)
+
+IO.inspect(crabs)
+
+{min_pos, max_pos} = Enum.min_max(crabs)
+
+fuels =
+  min_pos..max_pos
+  |> Enum.map(fn pos -> Crab.total_fuel_aligning_at(crabs, pos) end)
+
+min_fuel = Enum.min(fuels)
+
+Enum.with_index(fuels)
+|> Enum.min()
+|> elem(0)
+```
+
+## Part 2
+
+```elixir
+IO.inspect(crabs)
+
+fuels =
+  min_pos..max_pos
+  |> Enum.map(fn pos -> Crab.total_inc_fuel_aligning_at(crabs, pos) end)
+
+min_fuel = Enum.min(fuels)
+
+Enum.with_index(fuels)
+|> Enum.min()
+|> elem(0)
+```
