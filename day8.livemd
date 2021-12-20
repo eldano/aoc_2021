@@ -1,0 +1,179 @@
+# Day 8
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+## Modules
+
+```elixir
+defmodule Digit do
+  def init(segments) do
+    MapSet.new(segments |> String.to_charlist())
+  end
+end
+
+defmodule Display do
+  def init(string) do
+    string
+    |> String.split("\n")
+    |> Enum.map(fn line ->
+      [digits, output] = String.split(line, " | ")
+      digits_list = String.split(digits, " ") |> Enum.map(&Digit.init/1)
+      output_list = String.split(output, " ") |> Enum.map(&Digit.init/1)
+
+      {
+        digits_list,
+        output_list
+      }
+    end)
+  end
+
+  def reps() do
+    %{
+      "0" => "abcefg",
+      "1" => "cf",
+      "2" => "acdeg",
+      "3" => "acdfg",
+      "4" => "bcdf",
+      "5" => "abdfg",
+      "6" => "abdefg",
+      "7" => "acf",
+      "8" => "abcdefg",
+      "9" => "abcdfg"
+    }
+    |> Map.new(fn {key, val} -> {val, key} end)
+  end
+
+  def part1(one_output) do
+    one_output
+    |> Enum.count(fn digit ->
+      Enum.count(digit) in [2, 4, 3, 7]
+    end)
+  end
+
+  def len(comb, n) do
+    Enum.find(comb, fn i -> Enum.count(i) == n end)
+  end
+
+  def all_by_len(comb, n) do
+    Enum.filter(comb, fn i -> Enum.count(i) == n end)
+  end
+
+  def inters(mapsets) do
+    [ms1, ms2, ms3] = mapsets
+
+    MapSet.intersection(ms1, ms2)
+    |> MapSet.intersection(ms3)
+  end
+
+  def diff(init, mapsets)
+  def diff(init, []), do: init
+
+  def diff(init, [head | tail]) do
+    init |> MapSet.difference(head) |> diff(tail)
+  end
+
+  def to_elem(mapset) do
+    mapset |> MapSet.to_list() |> List.first()
+  end
+
+  def digits_for_combinations(comb) do
+    u = len(comb, 7)
+
+    n = MapSet.difference(len(comb, 3), len(comb, 2))
+    ne_se = len(comb, 2)
+    nw_c = MapSet.difference(len(comb, 4), len(comb, 2))
+
+    n_c_s = all_by_len(comb, 5) |> inters()
+    n_nw_se_s = all_by_len(comb, 6) |> inters()
+
+    s = diff(n_c_s, [n, nw_c])
+    sw = diff(u, [n, ne_se, nw_c, s])
+    c = diff(n_c_s, [n, s])
+
+    nw = diff(nw_c, [c])
+    se = diff(n_nw_se_s, [n, s, nw])
+    ne = diff(ne_se, [se])
+
+    %{
+      "a" => n |> to_elem(),
+      "b" => nw |> to_elem(),
+      "c" => ne |> to_elem(),
+      "d" => c |> to_elem(),
+      "e" => sw |> to_elem(),
+      "f" => se |> to_elem(),
+      "g" => s |> to_elem()
+    }
+    |> Map.new(fn {key, val} -> {val, key} end)
+  end
+
+  def substitute_map_in_output(mapping, output) do
+    output
+    |> Enum.map(fn one ->
+      list = MapSet.to_list(one)
+
+      digit =
+        list
+        |> Enum.map(fn elem -> mapping[elem] end)
+        |> Enum.sort()
+        |> Enum.join()
+
+      reps()[digit]
+    end)
+    |> Enum.join()
+  end
+end
+```
+
+## Part 1
+
+```elixir
+puzzle =
+  input
+  |> Kino.Input.read()
+  |> Display.init()
+
+puzzle
+|> Enum.map(fn {_digits, output} -> output end)
+|> Enum.map(fn output_item -> Display.part1(output_item) end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+#  NNNNN          aaaa
+# NW   NE        b    c
+# NW   NE        b    c
+#  CCCCC          dddd
+# SW   SE        e    f
+# SW   SE        e    f
+#  SSSSS          gggg
+
+# N  => (len3 -- len2)
+# {NE, SE} => (len2)
+# {NW, C}  => (len4 -- len2)
+# S  => (intersection(len5) -- r(N) -- r{NW, C})
+# SW => (U -- r(N) -- r{NE, SE} -- r{NW, C} -- r(S))
+# C => intersection(len5) -- r(N) -- r(S)
+# NW => r{NW, C} -- r(C)
+# SE => intersection(len6) -- r(N) -- r(S) -- r(NW)
+# NE = r{NE, SE} -- r(SE)
+
+puzzle
+|> Enum.map(fn {digits, output} ->
+  solution = Display.digits_for_combinations(digits)
+  Display.substitute_map_in_output(solution, output)
+end)
+|> Enum.map(&String.to_integer/1)
+|> Enum.sum()
+```
