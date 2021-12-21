@@ -1,0 +1,109 @@
+# Day 9
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("input:")
+```
+
+## Modules
+
+```elixir
+defmodule Flow do
+  def init(string) do
+    string
+    |> String.split("\n")
+    |> Enum.with_index(fn elem, idx -> {idx, elem} end)
+    |> Enum.flat_map(fn {idx_row, row} ->
+      row_list = String.split(row, "", trim: true)
+
+      row_list
+      |> Enum.with_index(fn elem, idx -> {idx, elem} end)
+      |> Enum.map(fn {idx_col, value} -> {{idx_row, idx_col}, String.to_integer(value)} end)
+    end)
+    |> Map.new()
+  end
+
+  def is_low_point(puzzle, cx, cy) do
+    val = Map.get(puzzle, {cx, cy})
+
+    vw = Map.get(puzzle, {cx - 1, cy}, 10)
+    vn = Map.get(puzzle, {cx, cy - 1}, 10)
+    ve = Map.get(puzzle, {cx + 1, cy}, 10)
+    vs = Map.get(puzzle, {cx, cy + 1}, 10)
+
+    val < vw and val < vn and val < ve and val < vs
+  end
+
+  def mark_low_points(puzzle) do
+    puzzle
+    |> Map.map(fn {{cx, cy}, val} ->
+      if is_low_point(puzzle, cx, cy), do: {val, true}, else: {val, false}
+    end)
+  end
+
+  def mark_basin(puzzle, cx, cy) do
+    val = Map.get(puzzle, {cx, cy}, 9)
+
+    case val do
+      {_, true} ->
+        puzzle
+
+      9 ->
+        puzzle
+
+      _ ->
+        puzzle
+        |> Map.update!({cx, cy}, fn val -> {val, true} end)
+        |> mark_basin(cx + 1, cy)
+        |> mark_basin(cx - 1, cy)
+        |> mark_basin(cx, cy + 1)
+        |> mark_basin(cx, cy - 1)
+    end
+  end
+
+  def basin_size(puzzle, cx, cy) do
+    puzzle
+    |> mark_basin(cx, cy)
+    |> Map.filter(fn {_key, val} -> match?({_, true}, val) end)
+    |> Enum.count()
+  end
+end
+```
+
+## Part 1
+
+```elixir
+puzzle_input = Kino.Input.read(input)
+
+puzzle = Flow.init(puzzle_input)
+
+low_points = Flow.mark_low_points(puzzle)
+
+low_points
+|> Map.filter(fn {_k, {_val, mark}} -> mark end)
+|> Map.values()
+|> Enum.map(fn {val, _mark} -> val + 1 end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+low_points
+|> Map.filter(fn {_k, {_val, mark}} -> mark end)
+|> Map.keys()
+|> Enum.map(fn {cx, cy} ->
+  Flow.basin_size(puzzle, cx, cy)
+end)
+|> Enum.sort()
+|> Enum.reverse()
+|> Enum.take(3)
+|> Enum.reduce(1, fn val, acc -> val * acc end)
+```
